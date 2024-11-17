@@ -17,7 +17,7 @@ class DatabaseConnection
 
         // Check for connection errors
         if ($this->connection->connect_error) {
-            die("Database connection failed: " . $this->connection->connect_error);
+            die("Database_1 connection failed: " . $this->connection->connect_error);
         }
     }
 
