@@ -1,4 +1,6 @@
 <?php
+
+include_once("Billing.php");
 class ClinicBill implements Billing {
     private float $baseAmount;
     private string $billID;
@@ -27,5 +29,14 @@ class ClinicBill implements Billing {
 
     public function processPayment(): void {
         $this->paymentMethod->processPayment($this->calculateTotal());
+    }
+
+    // getters and setters for billID and appointmentID
+    public function getBillID(){
+        return $this->billID;
+    }
+
+    public function getAppointmentID(){
+        return $this->appointmentID;
     }
 }
