@@ -1,0 +1,258 @@
+-- Table for Department
+CREATE TABLE Department (
+                            departmentID INT PRIMARY KEY AUTO_INCREMENT,
+                            name VARCHAR(255) NOT NULL
+);
+
+-- Table for Room
+CREATE TABLE Room (
+                      roomID VARCHAR(255) PRIMARY KEY,
+                      type ENUM('general', 'ICU', 'operating') NOT NULL,
+                      capacity INT NOT NULL,
+                      departmentID INT NOT NULL,
+                      FOREIGN KEY (departmentID) REFERENCES Department(departmentID)
+);
+
+-- Staff
+CREATE TABLE Staff (
+                       staffID INT PRIMARY KEY AUTO_INCREMENT,
+                       name VARCHAR(255) NOT NULL,
+                       level VARCHAR(255) NOT NULL, -- e.g., Doctor, Nurse, Admin
+                       depart_ID INT NOT NULL, -- Foreign key to Department
+                       shiftScheduleID INT, -- Foreign key to Schedule
+                       salary INT NOT NULL,
+                       username VARCHAR(255) UNIQUE NOT NULL,
+                       password VARCHAR(255) NOT NULL,
+                       loginStrategy VARCHAR(255), -- For storing the type of login strategy
+                       FOREIGN KEY (depart_ID) REFERENCES Department(departmentID) ON DELETE CASCADE,
+                       FOREIGN KEY (shiftScheduleID) REFERENCES Schedule(scheduleID) ON DELETE SET NULL
+);
+
+
+
+-- Appointment
+CREATE TABLE Appointment (
+                             appointmentID VARCHAR(255) PRIMARY KEY,
+                             patientID VARCHAR(255) NOT NULL,
+                             doctorID VARCHAR(255) NOT NULL,
+                             date DATETIME NOT NULL,
+                             status VARCHAR(255) NOT NULL
+);
+
+-- Prescription
+CREATE TABLE Prescription (
+                              prescriptionID INT PRIMARY KEY AUTO_INCREMENT,
+                              patientID INT NOT NULL,
+                              doctorID INT NOT NULL,
+                              dateIssued DATE NOT NULL,
+                              FOREIGN KEY (patientID) REFERENCES Patient(patientID),
+                              FOREIGN KEY (doctorID) REFERENCES Staff(staffID)
+);
+
+CREATE TABLE Prescription_Medicines (
+                                        prescriptionID INT NOT NULL,
+                                        medicineID INT NOT NULL,
+                                        PRIMARY KEY (prescriptionID, medicineID),
+                                        FOREIGN KEY (prescriptionID) REFERENCES Prescription(prescriptionID),
+                                        FOREIGN KEY (medicineID) REFERENCES Medicine(medicineID)
+);
+
+-- Donor
+CREATE TABLE Donation (
+                          donationID INT PRIMARY KEY AUTO_INCREMENT,
+                          donorID INT NOT NULL,
+                          amount DOUBLE NOT NULL,
+                          type ENUM('money', 'equipment') NOT NULL,
+                          status ENUM('processed', 'on_delivery') NOT NULL,
+                          paymentStrategy VARCHAR(255),
+                          FOREIGN KEY (donorID) REFERENCES Donor(donorID)
+);
+CREATE TABLE Donor (
+                       donorID INT PRIMARY KEY AUTO_INCREMENT,
+                       name VARCHAR(255) NOT NULL,
+                       type ENUM('first-time', 'frequent', 'regular') NOT NULL
+);
+-- Address
+CREATE TABLE Address (
+                         addressID INT PRIMARY KEY AUTO_INCREMENT,
+                         street VARCHAR(255) NOT NULL,
+                         city VARCHAR(255) NOT NULL,
+                         country VARCHAR(255) NOT NULL,
+                         parentAddressID INT, -- Self-referencing to link to a parent address (if applicable)
+                         FOREIGN KEY (parentAddressID) REFERENCES Address(addressID)
+);
+
+-- Patient
+CREATE TABLE Patient (
+                         patientID INT PRIMARY KEY AUTO_INCREMENT,
+                         name VARCHAR(255) NOT NULL,
+                         age INT NOT NULL,
+                         admissionState VARCHAR(255),
+                         addressID INT, -- References a potential Address table if needed
+                         FOREIGN KEY (addressID) REFERENCES Address(addressID)
+);
+CREATE TABLE Patient_Bills (
+                               patientID INT NOT NULL,
+                               billID INT NOT NULL,
+                               PRIMARY KEY (patientID, billID),
+                               FOREIGN KEY (patientID) REFERENCES Patient(patientID),
+                               FOREIGN KEY (billID) REFERENCES Billing(billID)
+);
+-- Surgery
+CREATE TABLE Surgery (
+                         surgeryID INT PRIMARY KEY AUTO_INCREMENT,
+                         patientID INT NOT NULL,
+                         doctorID INT NOT NULL,
+                         scheduleID INT NOT NULL,
+                         type VARCHAR(255),
+                         status ENUM('scheduled', 'cancelled', 'completed') NOT NULL,
+                         notes TEXT,
+                         FOREIGN KEY (patientID) REFERENCES Patient(patientID),
+                         FOREIGN KEY (doctorID) REFERENCES Staff(staffID),
+                         FOREIGN KEY (scheduleID) REFERENCES Schedule(scheduleID)
+);
+CREATE TABLE Surgery_Medicines (
+                                   surgeryID INT NOT NULL,
+                                   medicineID INT NOT NULL,
+                                   PRIMARY KEY (surgeryID, medicineID),
+                                   FOREIGN KEY (surgeryID) REFERENCES Surgery(surgeryID),
+                                   FOREIGN KEY (medicineID) REFERENCES Medicine(medicineID)
+);
+CREATE TABLE Surgery_Nurses (
+                                surgeryID INT NOT NULL,
+                                nurseID INT NOT NULL,
+                                PRIMARY KEY (surgeryID, nurseID),
+                                FOREIGN KEY (surgeryID) REFERENCES Surgery(surgeryID),
+                                FOREIGN KEY (nurseID) REFERENCES Staff(staffID)
+);
+
+
+CREATE TABLE Schedule (
+                          scheduleID INT PRIMARY KEY AUTO_INCREMENT,
+                          type ENUM('shift', 'surgery') NOT NULL,
+                          startDateTime DATETIME NOT NULL,
+                          endDateTime DATETIME NOT NULL,
+                          location VARCHAR(255)
+);
+
+-- Nurse
+CREATE TABLE Nurse (
+                       staffID INT PRIMARY KEY,
+                       ICUStatus BOOLEAN NOT NULL,
+                       FOREIGN KEY (staffID) REFERENCES Staff(staffID)
+);
+CREATE TABLE Nurse_Patients (
+                                nurseID INT NOT NULL,
+                                patientID INT NOT NULL,
+                                PRIMARY KEY (nurseID, patientID),
+                                FOREIGN KEY (nurseID) REFERENCES Nurse(staffID),
+                                FOREIGN KEY (patientID) REFERENCES Patient(patientID)
+);
+CREATE TABLE Admin_Receptionist (
+                                    staffID INT PRIMARY KEY,
+                                    FOREIGN KEY (staffID) REFERENCES Staff(staffID)
+);
+
+-- Billing interface
+CREATE TABLE Billing (
+    billID INT PRIMARY KEY AUTO_INCREMENT,
+    baseAmount DOUBLE NOT NULL,
+    paymentMethod VARCHAR(255) NOT NULL
+);
+
+
+-- Clinic Bill
+CREATE TABLE ClinicBill (
+                            billID INT PRIMARY KEY,
+                            appointmentID VARCHAR(255) NOT NULL,
+                            paymentMethod VARCHAR(255) NOT NULL,
+                            FOREIGN KEY (billID) REFERENCES Billing(billID),
+                            FOREIGN KEY (appointmentID) REFERENCES Appointment(appointmentID)
+);
+
+-- Surgery Bill
+
+CREATE TABLE SurgeryBill (
+                             billID INT PRIMARY KEY,
+                             surgeryID INT NOT NULL,
+                             paymentMethod VARCHAR(255) NOT NULL,
+                             FOREIGN KEY (billID) REFERENCES Billing(billID)
+);
+-- Medicine
+CREATE TABLE Medicine (
+                          medicineID INT PRIMARY KEY AUTO_INCREMENT,
+                          name VARCHAR(255) NOT NULL,
+                          type ENUM('tablet', 'injection') NOT NULL,
+                          stock INT NOT NULL,
+                          price DOUBLE NOT NULL,
+                          expiryDate DATETIME NOT NULL
+);
+
+-- SurgeryBill_Medicines Table to handle relationship between SurgeryBill and Medicine
+CREATE TABLE SurgeryBill_Medicines (
+                                       billID INT NOT NULL,
+                                       medicineID INT NOT NULL,
+                                       quantity INT NOT NULL, -- Quantity of the specific medicine used in the surgery
+                                       PRIMARY KEY (billID, medicineID),
+                                       FOREIGN KEY (billID) REFERENCES SurgeryBill(billID),
+                                       FOREIGN KEY (medicineID) REFERENCES Medicine(medicineID)
+);
+
+-- Supplier
+CREATE TABLE Supplier (
+                          supplierID VARCHAR(255) PRIMARY KEY,
+                          name VARCHAR(255) NOT NULL,
+                          contactInfo VARCHAR(255) NOT NULL
+);
+
+-- Supply Order
+CREATE TABLE SupplyOrder (
+                             orderID VARCHAR(255) PRIMARY KEY,
+                             supplierID VARCHAR(255) NOT NULL,
+                             status VARCHAR(255) NOT NULL,
+                             orderDate DATE NOT NULL,
+                             deliveryDate DATE,
+                             FOREIGN KEY (supplierID) REFERENCES Supplier(supplierID)
+);
+
+CREATE TABLE SupplyOrder_Items (
+                                   orderID VARCHAR(255) NOT NULL,
+                                   itemID VARCHAR(255) NOT NULL,
+                                   quantity INT NOT NULL, -- Quantity of the item in the supply order
+                                   PRIMARY KEY (orderID, itemID),
+                                   FOREIGN KEY (orderID) REFERENCES SupplyOrder(orderID),
+                                   FOREIGN KEY (itemID) REFERENCES InventoryItem(itemID)
+);
+-- Inventory Table
+CREATE TABLE Inventory (
+                           inventoryID INT PRIMARY KEY AUTO_INCREMENT
+);
+
+
+-- InventoryItem
+CREATE TABLE InventoryItem (
+                               itemID VARCHAR(255) PRIMARY KEY,
+                               name VARCHAR(255) NOT NULL,
+                               type VARCHAR(255) NOT NULL,
+                               quantity INT NOT NULL,
+                               expiryDate DATE
+);
+
+-- Inventory_Items Table to handle relationship between Inventory and InventoryItem
+CREATE TABLE Inventory_Items (
+                                 inventoryID INT NOT NULL,
+                                 itemID VARCHAR(255) NOT NULL,
+                                 quantity INT NOT NULL, -- Quantity of the specific item in inventory
+                                 PRIMARY KEY (inventoryID, itemID),
+                                 FOREIGN KEY (inventoryID) REFERENCES Inventory(inventoryID),
+                                 FOREIGN KEY (itemID) REFERENCES InventoryItem(itemID)
+);
+
+-- Inventory_Orders Table to handle relationship between Inventory and SupplyOrder
+CREATE TABLE Inventory_Orders (
+                                  inventoryID INT NOT NULL,
+                                  orderID VARCHAR(255) NOT NULL,
+                                  PRIMARY KEY (inventoryID, orderID),
+                                  FOREIGN KEY (inventoryID) REFERENCES Inventory(inventoryID),
+                                  FOREIGN KEY (orderID) REFERENCES SupplyOrder(orderID)
+);
